@@ -49,10 +49,9 @@ This repository includes an automated workflow at `.github/workflows/android-apk
 ### What it does
 1. Checks out the repository.
 2. Sets up Java 17 with Gradle dependency caching.
-3. Ensures Gradle wrapper scripts/properties exist and are executable.
-4. Bootstraps `gradle-wrapper.jar` on the runner when missing.
-5. Runs `./gradlew assembleDebug`.
-6. Uploads APK(s) from `app/build/outputs/apk/debug/*.apk` as artifact `maks-island-debug-apk`.
+3. Installs Gradle 8.14.3 on the runner via `gradle/actions/setup-gradle`.
+4. Runs `gradle assembleDebug` (cloud-only; no dependency on `./gradlew` or `gradle/wrapper/gradle-wrapper.jar`).
+5. Uploads APK(s) from `app/build/outputs/apk/debug/*.apk` as artifact `maks-island-debug-apk`.
 
 ### Download the APK artifact
 1. Open the repository on GitHub.
@@ -61,3 +60,5 @@ This repository includes an automated workflow at `.github/workflows/android-apk
 4. Download `maks-island-debug-apk` from the **Artifacts** section.
 
 > Note: this pipeline currently builds **debug APKs** only. It is ready to extend later for signed release builds.
+>
+> CI intentionally uses installed Gradle in GitHub Actions and does **not** depend on committing `gradle/wrapper/gradle-wrapper.jar`.
