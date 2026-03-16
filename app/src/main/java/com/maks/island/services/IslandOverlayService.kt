@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
+import android.os.DeadObjectException
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
@@ -29,12 +30,21 @@ class IslandOverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "onCreate: preparing foreground overlay service.")
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, persistentNotification())
-        isRunning = true
+        runCatching {
+            startForeground(NOTIFICATION_ID, persistentNotification())
+            isRunning = true
+            Log.i(TAG, "Foreground service started successfully.")
+        }.onFailure { throwable ->
+            Log.e(TAG, "Failed to start foreground service; stopping self to avoid app crash.", throwable)
+            isRunning = false
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand: flags=$flags startId=$startId")
         if (!Settings.canDrawOverlays(this)) {
             Log.w(TAG, "Overlay permission missing. Stopping overlay service.")
             stopSelf()
@@ -99,7 +109,11 @@ class IslandOverlayService : Service() {
             windowManager.addView(view, params)
             Log.d(TAG, "Overlay view attached to WindowManager.")
         }.onFailure { throwable ->
-            Log.e(TAG, "Failed to attach overlay view.", throwable)
+            when (throwable) {
+                is SecurityException -> Log.e(TAG, "Overlay attach blocked by system security policy.", throwable)
+                is DeadObjectException -> Log.e(TAG, "Window token became invalid while adding overlay.", throwable)
+                else -> Log.e(TAG, "Failed to attach overlay view.", throwable)
+            }
             stopSelf()
         }
     }
@@ -149,12 +163,19 @@ class IslandOverlayService : Service() {
         var isRunning: Boolean = false
             private set
 
-        fun start(context: Context, forceTestIsland: Boolean = false) {
+        fun start(context: Context, forceTestIsland: Boolean = false): Boolean {
             val intent = Intent(context, IslandOverlayService::class.java).putExtra(EXTRA_FORCE_TEST, forceTestIsland)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            return runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                Log.d(TAG, "Overlay service start intent dispatched.")
+                true
+            }.getOrElse { throwable ->
+                Log.e(TAG, "Overlay service start failed; suppressed to keep app stable.", throwable)
+                false
             }
         }
 
