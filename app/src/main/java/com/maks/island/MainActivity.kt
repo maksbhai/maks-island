@@ -30,15 +30,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        Log.d(TAG, "onStart: running launch checks")
-        viewModel.onAppLaunch()
-    }
-
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "onResume: refreshing after permission/settings flow")
+        Log.d(TAG, "onResume: running launch checks")
         viewModel.onAppLaunch()
     }
 
