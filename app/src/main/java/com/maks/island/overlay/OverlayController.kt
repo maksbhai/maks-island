@@ -1,15 +1,21 @@
 package com.maks.island.overlay
 
 import android.content.Context
-import android.content.Intent
+import android.util.Log
 import com.maks.island.services.IslandOverlayService
 
 class OverlayController(private val context: Context) {
-    fun start() {
-        context.startForegroundService(Intent(context, IslandOverlayService::class.java))
+    fun start(forceTestIsland: Boolean = false) {
+        Log.d(TAG, "Requesting overlay start. forceTestIsland=$forceTestIsland")
+        IslandOverlayService.start(context, forceTestIsland)
     }
 
     fun stop() {
-        context.stopService(Intent(context, IslandOverlayService::class.java))
+        Log.d(TAG, "Requesting overlay stop.")
+        IslandOverlayService.stop(context)
+    }
+
+    companion object {
+        private const val TAG = "OverlayController"
     }
 }

@@ -72,7 +72,7 @@ fun SettingsScreen(viewModel: IslandViewModel, onBack: () -> Unit, onAppFilters:
                 PremiumSlider("Safe margin", s.safeMargin, 0f..32f) { viewModel.setFloat("safe_margin", it) }
                 PremiumSwitch("Snap to camera", checked = s.snapToCamera) { viewModel.setBool("snap_to_camera", it) }
                 PremiumSwitch("Free drag", checked = s.draggable) { viewModel.setBool("draggable", it) }
-                ClickRow("Reset island position", "Reset") { viewModel.setFloat("x", 0f); viewModel.setFloat("y", 0f) }
+                ClickRow("Reset island position", "Reset") { viewModel.resetIslandPosition() }
             }
 
             SectionCard("Animation") {
@@ -120,8 +120,9 @@ fun SettingsScreen(viewModel: IslandViewModel, onBack: () -> Unit, onAppFilters:
             SectionCard("Advanced") {
                 PremiumSwitch("Debug bounds", checked = s.debugBounds) { viewModel.setBool("debug_bounds", it) }
                 ClickRow("Battery optimization guide", "Open") {}
-                ClickRow("Restart service", "Run") {}
+                ClickRow("Restart service", "Run") { viewModel.onAppLaunch() }
                 ClickRow("Run all preview states", "Test") {
+                    viewModel.showTestIslandNow()
                     PreviewScenario.entries.forEach(viewModel::triggerPreviewScenario)
                 }
                 ClickRow("Reset all settings", "Placeholder") {}
