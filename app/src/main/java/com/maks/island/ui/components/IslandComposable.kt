@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.sp
 import com.maks.island.domain.models.IslandBackgroundStyle
 import com.maks.island.domain.models.IslandSettings
@@ -62,12 +64,16 @@ fun IslandComposable(
     onLongPress: () -> Unit = {},
 ) {
     val compact = state is IslandVisualState.Idle
+    val safeWidth = settings.width.coerceIn(200f, 360f)
+    val safeHeight = settings.height.coerceIn(44f, 84f)
+    val safeTopOffset = settings.topOffset.coerceIn(16f, 140f)
+    val safeHorizontalOffset = settings.horizontalOffset.coerceIn(-120f, 120f)
     val targetWidth = when (state) {
-        IslandVisualState.Idle -> settings.width.dp * settings.compactScale
-        is IslandVisualState.Expanded -> (settings.width * 1.45f * settings.expandedScale).dp
-        else -> (settings.width * 1.25f).dp
+        IslandVisualState.Idle -> safeWidth.dp * settings.compactScale.coerceIn(0.8f, 1.2f)
+        is IslandVisualState.Expanded -> (safeWidth * 1.45f * settings.expandedScale.coerceIn(0.9f, 1.6f)).dp
+        else -> (safeWidth * 1.25f).dp
     }
-    val targetHeight = if (state is IslandVisualState.Expanded) (settings.height * 2.5f).dp else settings.height.dp
+    val targetHeight = if (state is IslandVisualState.Expanded) (safeHeight * 2.5f).dp else safeHeight.dp
 
     val width by animateDpAsState(targetWidth, spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f * settings.animationSpeed))
     val height by animateDpAsState(targetHeight, spring(dampingRatio = 0.78f, stiffness = 380f * settings.animationSpeed))
@@ -82,7 +88,7 @@ fun IslandComposable(
 
     val islandShape = RoundedCornerShape(settings.cornerRadius.dp)
 
-    Box(modifier.fillMaxWidth().padding(top = if (isPreview) 8.dp else settings.topOffset.dp), contentAlignment = Alignment.TopCenter) {
+    Box(modifier.fillMaxWidth().padding(top = if (isPreview) 8.dp else safeTopOffset.dp), contentAlignment = Alignment.TopCenter) {
         Box(
             Modifier
                 .width(width)
@@ -91,7 +97,8 @@ fun IslandComposable(
                 .background(backgroundBrush(settings, state, pulse), islandShape)
                 .border(1.dp, Color.White.copy(alpha = 0.08f + glow * 0.15f), islandShape)
                 .pointerInput(Unit) { detectTapGestures(onLongPress = { onLongPress() }) }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .offset(x = safeHorizontalOffset.roundToInt().dp),
         ) {
             AnimatedContent(targetState = state, label = "island") { current ->
                 when (current) {
@@ -184,7 +191,8 @@ private fun backgroundBrush(settings: IslandSettings, state: IslandVisualState, 
         is IslandVisualState.Notification -> Color(0x99A2B6FF)
         else -> Color.Transparent
     }
-    return Brush.linearGradient(listOf(base.first().copy(alpha = settings.transparency * pulse), base.last().copy(alpha = settings.transparency), accent))
+    val safeTransparency = settings.transparency.coerceIn(0.78f, 1f)
+    return Brush.linearGradient(listOf(base.first().copy(alpha = safeTransparency * pulse), base.last().copy(alpha = safeTransparency), accent))
 }
 
 private fun formatTimer(seconds: Int): String {

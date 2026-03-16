@@ -1,5 +1,10 @@
 package com.maks.island.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,10 +29,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maks.island.domain.models.NotificationItem
@@ -41,6 +48,35 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val state by viewModel.islandState.collectAsStateWithLifecycle()
     val summary by viewModel.homeSummary.collectAsStateWithLifecycle()
+    val diagnostics by viewModel.diagnostics.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.onAppLaunch()
+    }
+
+    fun openOverlaySettings() {
+        context.startActivity(
+            Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
+        )
+    }
+
+    fun openNotificationAccessSettings() {
+        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+    }
+
+    fun openBatteryOptimizationSettings() {
+        val pm = context.getSystemService(PowerManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && pm?.isIgnoringBatteryOptimizations(context.packageName) == false) {
+            context.startActivity(
+                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                },
+            )
+        } else {
+            context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -53,6 +89,25 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
             }
             IconButton(onClick = onAbout) { Icon(Icons.Default.Info, contentDescription = null) }
             IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, contentDescription = null) }
+        }
+
+        if (!diagnostics.overlayPermissionGranted || !diagnostics.notificationAccessGranted) {
+            Card {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("First-launch setup", style = MaterialTheme.typography.titleMedium)
+                    Text("Grant required permissions so Dynamic Island can appear and react at runtime.")
+                    if (!diagnostics.overlayPermissionGranted) {
+                        Button(onClick = ::openOverlaySettings, modifier = Modifier.fillMaxWidth()) { Text("Grant overlay permission") }
+                    }
+                    if (!diagnostics.notificationAccessGranted) {
+                        Button(onClick = ::openNotificationAccessSettings, modifier = Modifier.fillMaxWidth()) { Text("Grant notification listener access") }
+                    }
+                    if (!diagnostics.batteryOptimizationIgnored) {
+                        Button(onClick = ::openBatteryOptimizationSettings, modifier = Modifier.fillMaxWidth()) { Text("Disable battery optimization") }
+                    }
+                    Button(onClick = viewModel::refreshDiagnostics, modifier = Modifier.fillMaxWidth()) { Text("Refresh permission status") }
+                }
+            }
         }
 
         Card(shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
@@ -68,6 +123,21 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
                     Text("Enable island", modifier = Modifier.weight(1f))
                     Switch(checked = settings.enabled, onCheckedChange = { viewModel.setBool("enabled", it) })
                 }
+                Button(onClick = viewModel::showTestIslandNow, modifier = Modifier.fillMaxWidth()) {
+                    Text("Show Test Island Now")
+                }
+            }
+        }
+
+        Card {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Diagnostics", style = MaterialTheme.typography.titleMedium)
+                Text("Overlay permission: ${if (diagnostics.overlayPermissionGranted) "Granted" else "Missing"}")
+                Text("Notification access: ${if (diagnostics.notificationAccessGranted) "Granted" else "Missing"}")
+                Text("Battery optimization ignored: ${if (diagnostics.batteryOptimizationIgnored) "Yes" else "No"}")
+                Text("Overlay service running: ${if (diagnostics.overlayServiceRunning) "Yes" else "No"}")
+                Text("Island enabled setting: ${if (diagnostics.islandEnabled) "On" else "Off"}")
+                Button(onClick = viewModel::refreshDiagnostics, modifier = Modifier.fillMaxWidth()) { Text("Refresh diagnostics") }
             }
         }
 
