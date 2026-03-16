@@ -2,5 +2,3 @@
 .gradle/
 
 
-# Exclude binary wrapper JAR from PRs in this repo
-/gradle/wrapper/gradle-wrapper.jar
