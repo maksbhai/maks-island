@@ -37,3 +37,27 @@ Maks Island is a premium-styled Android utility app inspired by Dynamic Island i
 
 ## Notes about platform limits
 Android does not allow third-party apps to universally replace system heads-up behavior. Maks Island mirrors and enhances notification presentation in an overlay where permissions and OEM behavior permit.
+
+## Build downloadable APKs with GitHub Actions
+This repository includes an automated workflow at `.github/workflows/android-apk.yml` that builds a debug APK in GitHub Actions.
+
+### Triggers
+- Push to `main`
+- Pull request targeting `main`
+- Manual run via **Actions** → **Build Android APK** → **Run workflow**
+
+### What it does
+1. Checks out the repository.
+2. Sets up Java 17 with Gradle dependency caching.
+3. Ensures Gradle wrapper scripts/properties exist and are executable.
+4. Bootstraps `gradle-wrapper.jar` on the runner when missing.
+5. Runs `./gradlew assembleDebug`.
+6. Uploads APK(s) from `app/build/outputs/apk/debug/*.apk` as artifact `maks-island-debug-apk`.
+
+### Download the APK artifact
+1. Open the repository on GitHub.
+2. Go to the **Actions** tab.
+3. Select a **Build Android APK** run.
+4. Download `maks-island-debug-apk` from the **Artifacts** section.
+
+> Note: this pipeline currently builds **debug APKs** only. It is ready to extend later for signed release builds.
