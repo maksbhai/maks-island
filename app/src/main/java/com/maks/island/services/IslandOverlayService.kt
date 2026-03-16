@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
 import com.maks.island.domain.models.IslandSettings
@@ -48,10 +49,8 @@ class IslandOverlayService : Service() {
 
     private fun showOverlay(forceTestIsland: Boolean) {
         val windowManager = wm ?: (getSystemService(WINDOW_SERVICE) as WindowManager).also { wm = it }
-        view?.let { existing ->
-            windowManager.removeView(existing)
-            view = null
-        }
+        safelyRemoveView(windowManager, view)
+        view = null
 
         val defaultSettings = IslandSettings(
             width = if (forceTestIsland) 300f else 240f,
@@ -96,16 +95,34 @@ class IslandOverlayService : Service() {
             y = 0
         }
 
-        windowManager.addView(view, params)
-        Log.d(TAG, "Overlay view attached to WindowManager.")
+        runCatching {
+            windowManager.addView(view, params)
+            Log.d(TAG, "Overlay view attached to WindowManager.")
+        }.onFailure { throwable ->
+            Log.e(TAG, "Failed to attach overlay view.", throwable)
+            stopSelf()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        view?.let { wm?.removeView(it) }
+        safelyRemoveView(wm, view)
         view = null
         isRunning = false
         Log.d(TAG, "Overlay service destroyed.")
+    }
+
+    private fun safelyRemoveView(windowManager: WindowManager?, candidate: View?) {
+        if (windowManager == null || candidate == null) return
+        runCatching {
+            if (candidate.isAttachedToWindow) {
+                windowManager.removeViewImmediate(candidate)
+            } else {
+                windowManager.removeView(candidate)
+            }
+        }.onFailure { throwable ->
+            Log.w(TAG, "Overlay view removal skipped due to stale window token.", throwable)
+        }
     }
 
     private fun createNotificationChannel() {
