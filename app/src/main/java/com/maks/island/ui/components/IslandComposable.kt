@@ -7,6 +7,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -183,7 +184,7 @@ private fun backgroundBrush(settings: IslandSettings, state: IslandVisualState, 
         is IslandVisualState.Notification -> Color(0x99A2B6FF)
         else -> Color.Transparent
     }
-    return Brush.linearGradient(listOf(base.first.copy(alpha = settings.transparency * pulse), base.last.copy(alpha = settings.transparency), accent))
+    return Brush.linearGradient(listOf(base.first().copy(alpha = settings.transparency * pulse), base.last().copy(alpha = settings.transparency), accent))
 }
 
 private fun formatTimer(seconds: Int): String {
