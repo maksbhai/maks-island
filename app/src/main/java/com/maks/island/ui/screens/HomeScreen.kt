@@ -19,15 +19,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,13 +86,20 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Maks Island", style = MaterialTheme.typography.headlineSmall)
-                Text("Premium Pixel dynamic island", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Card(shape = RoundedCornerShape(30.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                Modifier
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.surface)))
+                    .padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Maks Island", style = MaterialTheme.typography.headlineSmall)
+                    Text("Smarter Pixel-style dynamic island", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onAbout) { Icon(Icons.Default.Info, contentDescription = null) }
+                IconButton(onClick = onSettings) { Icon(Icons.Default.Tune, contentDescription = null) }
             }
-            IconButton(onClick = onAbout) { Icon(Icons.Default.Info, contentDescription = null) }
-            IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, contentDescription = null) }
         }
 
         if (!diagnostics.overlayPermissionGranted || !diagnostics.notificationAccessGranted) {
@@ -123,8 +134,16 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
                     Text("Enable island", modifier = Modifier.weight(1f))
                     Switch(checked = settings.enabled, onCheckedChange = { viewModel.setBool("enabled", it) })
                 }
-                Button(onClick = viewModel::showTestIslandNow, modifier = Modifier.fillMaxWidth()) {
-                    Text("Show Test Island Now")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = viewModel::showTestIslandNow,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = null)
+                        Text(" Test island")
+                    }
+                    TextButton(onClick = viewModel::clearToIdle, modifier = Modifier.weight(1f)) { Text("Clear") }
                 }
             }
         }
@@ -144,6 +163,10 @@ fun HomeScreen(viewModel: IslandViewModel, onSettings: () -> Unit, onAbout: () -
         Card { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Control Center", style = MaterialTheme.typography.titleMedium)
             Text(summary)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(onClick = { viewModel.triggerPreviewScenario(PreviewScenario.Notification) }, label = { Text("Ping") }, leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null) })
+                AssistChip(onClick = onSettings, label = { Text("Tune UI") }, leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) })
+            }
             Text("Developer: Maks • Version 1.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant)
         } }
 
