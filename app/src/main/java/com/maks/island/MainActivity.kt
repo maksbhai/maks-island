@@ -1,6 +1,7 @@
 package com.maks.island
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +32,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        Log.d(TAG, "onStart: running launch checks")
         viewModel.onAppLaunch()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "onResume: refreshing after permission/settings flow")
+        viewModel.onAppLaunch()
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
     }
 }
