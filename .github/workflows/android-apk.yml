@@ -27,23 +27,8 @@ jobs:
         with:
           gradle-version: 8.14.3
 
-      - name: Verify Gradle wrapper files exist
-        run: |
-          test -f ./gradlew || { echo "Missing ./gradlew"; exit 1; }
-          test -f ./gradle/wrapper/gradle-wrapper.properties || { echo "Missing gradle-wrapper.properties"; exit 1; }
-
-      - name: Grant Gradle execute permission
-        run: chmod +x ./gradlew
-
-      - name: Bootstrap wrapper JAR if missing
-        run: |
-          if [ ! -f ./gradle/wrapper/gradle-wrapper.jar ]; then
-            echo "gradle-wrapper.jar not found; generating wrapper using Gradle"
-            gradle wrapper --no-validate-url
-          fi
-
       - name: Build debug APK
-        run: ./gradlew --stacktrace --no-daemon assembleDebug
+        run: gradle --stacktrace --no-daemon assembleDebug
 
       - name: Verify APK output
         run: |
