@@ -24,8 +24,6 @@ import androidx.lifecycle.LifecycleRegistry
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
-import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.maks.island.domain.models.IslandSettings
 import com.maks.island.domain.models.IslandVisualState
 import com.maks.island.domain.models.NotificationItem
@@ -107,9 +105,7 @@ class IslandOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner 
         }
 
         view = ComposeView(this).apply {
-            ViewTreeLifecycleOwner.set(this, this@IslandOverlayService)
-            ViewTreeSavedStateRegistryOwner.set(this, this@IslandOverlayService)
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 IslandComposable(
                     state = state,
