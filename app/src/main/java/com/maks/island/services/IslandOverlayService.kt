@@ -17,6 +17,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -108,6 +109,7 @@ class IslandOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner 
         view = ComposeView(this).apply {
             ViewTreeLifecycleOwner.set(this, this@IslandOverlayService)
             ViewTreeSavedStateRegistryOwner.set(this, this@IslandOverlayService)
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 IslandComposable(
                     state = state,
