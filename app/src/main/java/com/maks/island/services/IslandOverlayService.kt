@@ -17,19 +17,37 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.compose.ui.platform.ComposeView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.maks.island.domain.models.IslandSettings
 import com.maks.island.domain.models.IslandVisualState
 import com.maks.island.domain.models.NotificationItem
 import com.maks.island.ui.components.IslandComposable
 
-class IslandOverlayService : Service() {
+class IslandOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
     private var wm: WindowManager? = null
     private var view: ComposeView? = null
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
 
     override fun onCreate() {
         super.onCreate()
+        savedStateRegistryController.performAttach()
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         Log.d(TAG, "onCreate: preparing foreground overlay service.")
         createNotificationChannel()
         runCatching {
@@ -43,6 +61,8 @@ class IslandOverlayService : Service() {
         }
     }
 
+    override fun onBind(intent: Intent?): IBinder? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: flags=$flags startId=$startId")
         if (!Settings.canDrawOverlays(this)) {
@@ -50,6 +70,8 @@ class IslandOverlayService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
 
         val forceTestIsland = intent?.getBooleanExtra(EXTRA_FORCE_TEST, false) == true
         Log.d(TAG, "Starting/refreshing overlay view. forceTestIsland=$forceTestIsland")
@@ -84,6 +106,8 @@ class IslandOverlayService : Service() {
         }
 
         view = ComposeView(this).apply {
+            ViewTreeLifecycleOwner.set(this, this@IslandOverlayService)
+            ViewTreeSavedStateRegistryOwner.set(this, this@IslandOverlayService)
             setContent {
                 IslandComposable(
                     state = state,
@@ -119,11 +143,19 @@ class IslandOverlayService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         safelyRemoveView(wm, view)
         view = null
         isRunning = false
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        super.onDestroy()
         Log.d(TAG, "Overlay service destroyed.")
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun safelyRemoveView(windowManager: WindowManager?, candidate: View?) {
